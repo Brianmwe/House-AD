@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Estate App | Skeleton Architecture</title>
+  <!-- CSS Framework & Icons CDN -->
+  <link rel="stylesheet" href="path-to-your-styles.css">
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- 1. NAVIGATION HEADER                       -->
+  <!-- ========================================== -->
+  <header class="app-header">
+    <div class="brand-logo" onclick="handleReset()">
+      <span>BrandLogo</span>
+    </div>
+    
+    <nav class="nav-links">
+      <a href="#buy">Buy</a>
+      <a href="#rent">Rent</a>
+      <a href="#agents">Agents</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button id="favorites-trigger" onclick="toggleFavoritesDrawer()">Saved (<span id="fav-count">0</span>)</button>
+      <button onclick="openListingModal()">List Property</button>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 2. SEARCH & FILTER CONTROLS BAR            -->
+  <!-- ========================================== -->
+  <section class="search-filter-section">
+    <div class="filter-tabs">
+      <button onclick="setStatusFilter('buy')">For Sale</button>
+      <button onclick="setStatusFilter('rent')">For Rent</button>
+    </div>
+
+    <div class="filter-inputs-grid">
+      <input type="text" id="filter-location" placeholder="Search location..." oninput="handleFilterChange()">
+      
+      <select id="filter-type" onchange="handleFilterChange()">
+        <option value="all">All Property Types</option>
+        <!-- Options injected dynamically or statically -->
+      </select>
+
+      <input type="range" id="filter-price" oninput="handleFilterChange()">
+      
+      <select id="filter-beds" onchange="handleFilterChange()">
+        <option value="any">Bedrooms</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 3. MAIN CONTENT CONTAINER (Views Switcher) -->
+  <!-- ========================================== -->
+  <main class="app-main">
+    <div class="view-controls">
+      <span id="results-counter">0 properties found</span>
+      <div class="toggle-buttons">
+        <button onclick="switchView('grid')">Grid View</button>
+        <button onclick="switchView('map')">Map View</button>
+      </div>
+    </div>
+
+    <!-- Grid View Container -->
+    <div id="grid-view" class="view-container">
+      <!-- Dynamic Property Cards injected via JS -->
+    </div>
+
+    <!-- Map View Container (Hidden by default) -->
+    <div id="map-view" class="view-container hidden">
+      <div id="map-sidebar-list"></div>
+      <div id="map-canvas-simulator"></div>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- 4. SAVED PROPERTIES SIDE DRAWER            -->
+  <!-- ========================================== -->
+  <aside id="favorites-drawer" class="drawer hidden">
+    <div class="drawer-header">
+      <h3>Saved Properties</h3>
+      <button onclick="toggleFavoritesDrawer()">Close</button>
+    </div>
+    <div id="favorites-list-container">
+      <!-- Saved items injected via JS -->
+    </div>
+  </aside>
+
+  <!-- ========================================== -->
+  <!-- 5. PROPERTY DETAIL MODAL                   -->
+  <!-- ========================================== -->
+  <div id="property-modal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closePropertyModal()"></div>
+    <div class="modal-content">
+      <button onclick="closePropertyModal()">X</button>
+      
+      <!-- Modal Body Sections -->
+      <div class="modal-gallery"></div>
+      <div class="modal-details">
+        <h2 id="modal-title"></h2>
+        <p id="modal-location"></p>
+        <div id="modal-specs"></div>
+        <div id="modal-description"></div>
+        
+        <!-- Embedded Interactive Tool (e.g., Mortgage Calculator) -->
+        <div class="calculator-box">
+          <input type="number" id="calc-downpayment" oninput="runCalculator()">
+          <input type="number" id="calc-interest" oninput="runCalculator()">
+          <span id="calc-output"></span>
+        </div>
+
+        <!-- Contact Agent Form -->
+        <form id="agent-form" onsubmit="submitAgentInquiry(event)">
+          <input type="text" placeholder="Name" required>
+          <input type="email" placeholder="Email" required>
+          <button type="submit">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 6. APPLICATION JAVASCRIPT ARCHITECTURE     -->
+  <!-- ========================================== -->
+  <script>
+    // --- State Management ---
+    const appState = {
+      properties: [],          // Raw data fetched from backend/API
+      filteredProperties: [],  // Filtered array based on user controls
+      favorites: new Set(),    // User favorited property IDs
+      currentView: 'grid',     // 'grid' or 'map'
+      filters: {
+        status: 'buy',
+        location: '',
+        type: 'all',
+        maxPrice: 0,
+        beds: 'any'
+      },
+      activeProperty: null     // Currently selected item for modal view
+    };
+
+    // --- Lifecycle Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchPropertyData();
+    });
+
+    function fetchPropertyData() {
+      // TODO: Replace with fetch('/api/properties') call to your backend
+      appState.properties = []; 
+      applyFilters();
+    }
+
+    // --- Filtering & Logic Controller ---
+    function setStatusFilter(status) {
+      appState.filters.status = status;
+      applyFilters();
+    }
+
+    function handleFilterChange() {
+      // Gather inputs from DOM and update appState.filters
+      applyFilters();
+    }
+
+    function applyFilters() {
+      appState.filteredProperties = appState.properties.filter(property => {
+        // Implement filter criteria checks here (status, price, location, etc.)
+        return true;
+      });
+      renderView();
+    }
+
+    // --- View Rendering Engine ---
+    function switchView(viewMode) {
+      appState.currentView = viewMode;
+      // Toggle CSS visibility classes between grid and map containers
+      renderView();
+    }
+
+    function renderView() {
+      if (appState.currentView === 'grid') {
+        renderPropertyGrid();
+      } else {
+        renderMapView();
+      }
+    }
+
+    function renderPropertyGrid() {
+      const container = document.getElementById('grid-view');
+      container.innerHTML = '';
+      
+      appState.filteredProperties.forEach(property => {
+        // Create card element, attach data and event listeners, append to container
+      });
+    }
+
+    function renderMapView() {
+      // Render map pins and sidebar list corresponding to appState.filteredProperties
+    }
+
+    // --- Favorites Management ---
+    function toggleFavorite(propertyId) {
+      if (appState.favorites.has(propertyId)) {
+        appState.favorites.delete(propertyId);
+      } else {
+        appState.favorites.add(propertyId);
+      }
+      document.getElementById('fav-count').textContent = appState.favorites.size;
+      renderFavoritesDrawerContent();
+    }
+
+    function toggleFavoritesDrawer() {
+      const drawer = document.getElementById('favorites-drawer');
+      drawer.classList.toggle('hidden');
+    }
+
+    function renderFavoritesDrawerContent() {
+      // Loop through appState.favorites and populate the side drawer
+    }
+
+    // --- Modal & Interactive Tool Handlers ---
+    function openPropertyModal(propertyId) {
+      appState.activeProperty = appState.properties.find(p => p.id === propertyId);
+      // Populate modal DOM nodes with appState.activeProperty data
+      document.getElementById('property-modal').classList.remove('hidden');
+    }
+
+    function closePropertyModal() {
+      document.getElementById('property-modal').classList.add('hidden');
+      appState.activeProperty = null;
+    }
+
+    function runCalculator() {
+      // Calculate financial values dynamically using appState.activeProperty pricing
+    }
+
+    function submitAgentInquiry(event) {
+      event.preventDefault();
+      // Handle form submission logic (e.g., API POST request)
+    }
+
+    function handleReset() {
+      // Reset state filters and reload initial view
+    }
+  </script>
+</body>
+</html>
