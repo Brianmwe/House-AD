@@ -32,3 +32,18 @@ server/
 │   └── schema.prisma         # Database models / entities
 ├── app.js                    # Express app setup & middleware
 └── server.js                 # HTTP server entry point
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/resource.controller');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth.middleware');
+
+// Public routes
+router.get('/', controller.getAll);
+router.get('/:id', controller.getById);
+
+// Protected routes
+router.post('/', authenticateToken, controller.create);
+router.put('/:id', authenticateToken, controller.update);
+router.delete('/:id', authenticateToken, authorizeRoles('ADMIN'), controller.remove);
+
+module.exports = router;
