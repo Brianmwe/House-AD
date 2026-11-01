@@ -1,0 +1,16 @@
+server/
+├── config/
+│   └── db.js                 # Database connection initialization
+├── middleware/
+│   ├── auth.middleware.js    # Authentication & role verification
+│   └── error.middleware.js   # Centralized error handling
+├── controllers/
+│   ├── auth.controller.js    # User authentication logic
+│   └── resource.controller.js# Core business logic / CRUD
+├── routes/
+│   ├── auth.routes.js        # Auth endpoints
+│   └── resource.routes.js    # Core resource endpoints
+├── models/
+│   └── schema.prisma         # Database models / entities
+├── app.js                    # Express app setup & middleware
+└── server.js                 # HTTP server entry point
