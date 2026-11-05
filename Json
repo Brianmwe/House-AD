@@ -1,2 +1,41 @@
-
-html
+[
+  {
+    "id": "prop-1",
+    "title": "Modern Glass Villa",
+    "location": "Beverly Hills, CA",
+    "price": 1250000,
+    "status": "buy",
+    "type": "Villa",
+    "beds": 4,
+    "baths": 4.5,
+    "sqft": 3800,
+    "image": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
+    "description": "Breathtaking modern villa featuring floor-to-ceiling glass walls, infinity pool, and panoramic canyon views."
+  },
+  {
+    "id": "prop-2",
+    "title": "Downtown Luxury Loft",
+    "location": "Manhattan, NY",
+    "price": 4500,
+    "status": "rent",
+    "type": "Apartment",
+    "beds": 2,
+    "baths": 2,
+    "sqft": 1400,
+    "image": "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+    "description": "Industrial-chic loft with exposed brickwork, high ceilings, and premium stainless steel appliances in the heart of downtown."
+  },
+  {
+    "id": "prop-3",
+    "title": "Suburban Family Home",
+    "location": "Austin, TX",
+    "price": 650000,
+    "status": "buy",
+    "type": "Single Family",
+    "beds": 3,
+    "baths": 2.5,
+    "sqft": 2400,
+    "image": "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80",
+    "description": "Spacious family home with a manicured backyard, modern kitchen island, and quiet neighborhood cul-de-sac."
+  }
+]
