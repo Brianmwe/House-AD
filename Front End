@@ -249,3 +249,21 @@
   </script>
 </body>
 </html>
+// --- Updated Asynchronous Data Fetcher ---
+async function fetchPropertyData() {
+  try {
+    const response = await fetch('properties.json');
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
+    appState.properties = await response.json();
+    
+    // Initialize filter dropdowns and apply filters once data is loaded
+    initFilterControls();
+    applyFilters();
+  } catch (error) {
+    console.error('Failed to fetch property data:', error);
+    // Fallback UI or empty state handling can go here
+  }
+}
