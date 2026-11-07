@@ -1,13 +1,114 @@
-const db = require('../config/db');
+const { z } = require('zod');
+const prisma = require('../config/db'); // export a single shared PrismaClient from here
 
+const PROPERTY_TYPES = ['HOUSE', 'APARTMENT', 'TOWNHOUSE', 'VILLA', 'LAND', 'COMMERCIAL'];
+
+const httpError = (status, message) => Object.assign(new Error(message), { status });
+
+// ---------- Validation ----------
+const listQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12), // hard cap protects the DB
+  listingType: z.enum(['SALE', 'RENT']).optional(),
+  propertyType: z.enum(PROPERTY_TYPES).optional(),
+  city: z.string().trim().min(1).optional(),
+  q: z.string().trim().min(2).optional(),
+  minPrice: z.coerce.number().int().min(0).optional(),
+  maxPrice: z.coerce.number().int().min(0).optional(),
+  minBeds: z.coerce.number().int().min(0).optional(),
+  minBaths: z.coerce.number().int().min(0).optional(),
+  bbox: z.string().optional(), // "west,south,east,north" from the map viewport
+  sort: z.enum(['newest', 'price_asc', 'price_desc']).default('newest'),
+});
+
+const propertyBody = z.object({
+  title: z.string().trim().min(5).max(150),
+  description: z.string().trim().min(20),
+  listingType: z.enum(['SALE', 'RENT']),
+  propertyType: z.enum(PROPERTY_TYPES),
+  price: z.number().int().positive(),
+  bedrooms: z.number().int().min(0).default(0),
+  bathrooms: z.number().int().min(0).default(0),
+  areaSqm: z.number().int().positive().optional(),
+  features: z.array(z.string()).max(30).default([]),
+  address: z.string().optional(),
+  city: z.string().trim().min(1),
+  neighborhood: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+});
+
+const ORDER_BY = {
+  newest: { createdAt: 'desc' },
+  price_asc: { price: 'asc' },
+  price_desc: { price: 'desc' },
+};
+
+// Lightweight shape for result cards and map pins: no description, only the cover image
+const LIST_SELECT = {
+  id: true,
+  title: true,
+  price: true,
+  currency: true,
+  listingType: true,
+  propertyType: true,
+  bedrooms: true,
+  bathrooms: true,
+  areaSqm: true,
+  city: true,
+  neighborhood: true,
+  latitude: true,
+  longitude: true,
+  images: { select: { url: true }, orderBy: { position: 'asc' }, take: 1 },
+};
+
+// ---------- Handlers ----------
 exports.getAll = async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, ...filters } = req.query;
-    
-    // TODO: Query database using filters, pagination, etc.
-    const data = []; 
+    const f = listQuery.parse(req.query);
 
-    res.status(200).json({ success: true, data });
+    const where = { status: 'ACTIVE' };
+    if (f.listingType) where.listingType = f.listingType;
+    if (f.propertyType) where.propertyType = f.propertyType;
+    if (f.city) where.city = { equals: f.city, mode: 'insensitive' };
+    if (f.minBeds !== undefined) where.bedrooms = { gte: f.minBeds };
+    if (f.minBaths !== undefined) where.bathrooms = { gte: f.minBaths };
+    if (f.minPrice !== undefined || f.maxPrice !== undefined) {
+      where.price = { gte: f.minPrice, lte: f.maxPrice };
+    }
+    if (f.q) {
+      // Fine for small tables; switch to Postgres full-text search or pg_trgm as data grows
+      where.OR = [
+        { title: { contains: f.q, mode: 'insensitive' } },
+        { neighborhood: { contains: f.q, mode: 'insensitive' } },
+        { city: { contains: f.q, mode: 'insensitive' } },
+      ];
+    }
+    if (f.bbox) {
+      const [west, south, east, north] = f.bbox.split(',').map(Number);
+      if ([west, south, east, north].some(Number.isNaN)) throw httpError(400, 'Invalid bbox');
+      where.latitude = { gte: south, lte: north };
+      where.longitude = { gte: west, lte: east };
+    }
+
+    // One round trip: page of results and total count together
+    const [data, total] = await prisma.$transaction([
+      prisma.property.findMany({
+        where,
+        select: LIST_SELECT,
+        orderBy: [ORDER_BY[f.sort], { id: 'asc' }], // id tiebreaker keeps pages stable
+        skip: (f.page - 1) * f.limit,
+        take: f.limit,
+      }),
+      prisma.property.count({ where }),
+    ]);
+
+    res.set('Cache-Control', 'public, max-age=30'); // short browser/CDN cache for anonymous browsing
+    res.status(200).json({
+      success: true,
+      data,
+      meta: { page: f.page, limit: f.limit, total, totalPages: Math.ceil(total / f.limit) },
+    });
   } catch (error) {
     next(error);
   }
@@ -15,9 +116,16 @@ exports.getAll = async (req, res, next) => {
 
 exports.getById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    // TODO: Fetch single record by ID
-    res.status(200).json({ success: true, data: {} });
+    const property = await prisma.property.findFirst({
+      where: { id: req.params.id, status: { in: ['ACTIVE', 'PENDING', 'SOLD', 'RENTED'] } },
+      include: {
+        images: { orderBy: { position: 'asc' } },
+        owner: { select: { id: true, name: true, phone: true } }, // never expose email or password
+      },
+    });
+    if (!property) throw httpError(404, 'Property not found');
+
+    res.status(200).json({ success: true, data: property });
   } catch (error) {
     next(error);
   }
@@ -25,11 +133,11 @@ exports.getById = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const payload = req.body;
-    const userId = req.user.id;
-
-    // TODO: Insert into database
-    res.status(201).json({ success: true, data: payload });
+    const body = propertyBody.parse(req.body);
+    const property = await prisma.property.create({
+      data: { ...body, ownerId: req.user.id, status: 'ACTIVE' },
+    });
+    res.status(201).json({ success: true, data: property });
   } catch (error) {
     next(error);
   }
@@ -37,96 +145,38 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const payload = req.body;
+    const existing = await prisma.property.findUnique({
+      where: { id: req.params.id },
+      select: { ownerId: true },
+    });
+    if (!existing) throw httpError(404, 'Property not found');
+    if (existing.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      throw httpError(403, 'You can only edit your own listings');
+    }
 
-    // TODO: Update record
-    res.status(200).json({ success: true, data: payload });
+    const body = propertyBody.partial().parse(req.body); // ownerId and status can't be changed here
+    const property = await prisma.property.update({ where: { id: req.params.id }, data: body });
+    res.status(200).json({ success: true, data: property });
   } catch (error) {
     next(error);
   }
 };
 
+// Soft delete: keeps history, favorites, and inquiries intact
 exports.remove = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    // TODO: Delete record
-    res.status(200).json({ success: true, message: 'Deleted successfully' });
+    const existing = await prisma.property.findUnique({
+      where: { id: req.params.id },
+      select: { ownerId: true },
+    });
+    if (!existing) throw httpError(404, 'Property not found');
+    if (existing.ownerId !== req.user.id && req.user.role !== 'ADMIN') {
+      throw httpError(403, 'You can only remove your own listings');
+    }
+
+    await prisma.property.update({ where: { id: req.params.id }, data: { status: 'ARCHIVED' } });
+    res.status(200).json({ success: true, message: 'Listing archived' });
   } catch (error) {
     next(error);
   }
-};
-model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
-  password  String
-  role      String     @default("USER")
-  resources Resource[]
-  createdAt DateTime   @default(now())
-}
-
-model Resource {
-  id          String   @id @default(uuid())
-  title       String
-  description String
-  status      String
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id])
-  createdAt   DateTime @default(now())
-}
-server/
-├── config/
-│   └── db.js                 # Database connection initialization
-├── middleware/
-│   ├── auth.middleware.js    # Authentication & role verification
-│   └── error.middleware.js   # Centralized error handling
-├── controllers/
-│   ├── auth.controller.js    # User authentication logic
-│   └── resource.controller.js# Core business logic / CRUD
-├── routes/
-│   ├── auth.routes.js        # Auth endpoints
-│   └── resource.routes.js    # Core resource endpoints
-├── models/
-│   └── schema.prisma         # Database models / entities
-├── app.js                    # Express app setup & middleware
-└── server.js                 # HTTP server entry point
-const express = require('express');
-const router = express.Router();
-const controller = require('../controllers/resource.controller');
-const { authenticateToken, authorizeRoles } = require('../middleware/auth.middleware');
-
-// Public routes
-router.get('/', controller.getAll);
-router.get('/:id', controller.getById);
-
-// Protected routes
-router.post('/', authenticateToken, controller.create);
-router.put('/:id', authenticateToken, controller.update);
-router.delete('/:id', authenticateToken, authorizeRoles('ADMIN'), controller.remove);
-
-module.exports = router;
-const jwt = require('jsonwebtoken');
-
-exports.authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ success: false, message: 'Token required' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ success: false, message: 'Invalid token' });
-    req.user = user;
-    next();
-  });
-};
-
-exports.authorizeRoles = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Unauthorized access' });
-    }
-    next();
-  };
 };
