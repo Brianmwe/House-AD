@@ -1,1 +1,107 @@
+/**
+ * api.js: frontend data layer for the real estate app.
+ *
+ * Load it before your main script:
+ *   <script src="api.js"></script>
+ *
+ * Then use it anywhere:
+ *   const { data, meta } = await API.getProperties({ listingType: 'SALE', city: 'Nairobi' });
+ */
 
+const API = (() => {
+  // Must match where the router is mounted in server/app.js
+  const BASE_URL = 'http://localhost:5000/api/properties';
+  const TOKEN_KEY = 'auth_token';
+
+  // ---------- Auth token ----------
+  const getToken = () => {
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
+  };
+
+  const setToken = (token) => {
+    try {
+      token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* storage unavailable: ignore */
+    }
+  };
+
+  // ---------- Core request helper ----------
+  async function request(path = '', { method = 'GET', body, query } = {}) {
+    const url = new URL(BASE_URL + path, window.location.origin);
+
+    if (query) {
+      Object.entries(query).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          url.searchParams.set(key, value);
+        }
+      });
+    }
+
+    const headers = {};
+    if (body) headers['Content-Type'] = 'application/json';
+
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      /* response had no JSON body */
+    }
+
+    if (!response.ok) {
+      const error = new Error(payload?.message || `Request failed (${response.status})`);
+      error.status = response.status;
+      throw error;
+    }
+
+    return payload;
+  }
+
+  // ---------- Filter mapping ----------
+  // Converts the UI's filter state (appState.filters) into backend query params.
+  function toQuery(filters = {}) {
+    return {
+      listingType: filters.status === 'rent' ? 'RENT' : filters.status === 'buy' ? 'SALE' : undefined,
+      propertyType: filters.type && filters.type !== 'all' ? filters.type : undefined,
+      q: filters.location?.trim() || undefined,
+      maxPrice: filters.maxPrice > 0 ? filters.maxPrice : undefined,
+      minBeds: filters.beds && filters.beds !== 'any' ? filters.beds : undefined,
+    };
+  }
+
+  // ---------- Public API ----------
+  return {
+    getToken,
+    setToken,
+    toQuery,
+
+    // GET /  ->  { success, data: [...], meta: { page, limit, total, totalPages } }
+    getProperties: (params = {}) => request('', { query: params }),
+
+    // GET /:id  ->  { success, data: {...} }
+    getProperty: (id) => request(`/${encodeURIComponent(id)}`),
+
+    // POST /  (login required)
+    createProperty: (property) => request('', { method: 'POST', body: property }),
+
+    // PUT /:id  (owner or admin)
+    updateProperty: (id, changes) =>
+      request(`/${encodeURIComponent(id)}`, { method: 'PUT', body: changes }),
+
+    // DELETE /:id  (archives the listing)
+    removeProperty: (id) => request(`/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  };
+})();
