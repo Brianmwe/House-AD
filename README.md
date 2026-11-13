@@ -5,3 +5,4 @@ A single-page, vanilla HTML/CSS/JavaScript skeleton for a property listing websi
 
 application JavaScript
 
+Its majorly for people looking to buy and or rent houses in key residential areas in major areas around the country
