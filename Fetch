@@ -5,7 +5,7 @@
  *   <script src="api.js"></script>
  *
  * Then use it anywhere:
- *   const { data, meta } = await API.getProperties({ listingType: 'SALE', city: 'Nairobi' });
+ *   const { data, meta } = await API.getProperties({ listingType: 'SALE', city: 'Nairobi', 'Mombasa', 'Meru'});
  */
 
 const API = (() => {
