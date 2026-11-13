@@ -1,7 +1,14 @@
 [
-  {"id":1,"status":"buy","title":"Garden townhouse","location":"Riverside","type":"Townhouse","price":385000,"beds":3,"baths":2,"sqft":1480,"x":22,"y":38,"image":"","description":"Three floors with a walled garden and an open kitchen."},
-  {"id":2,"status":"buy","title":"Corner family home","location":"Maple Hill","type":"House","price":520000,"beds":4,"baths":3,"sqft":2250,"x":64,"y":24,"image":"","description":"Corner plot with a double garage and a study."},
-  {"id":3,"status":"buy","title":"Top-floor apartment","location":"Old Quarter","type":"Apartment","price":275000,"beds":2,"baths":1,"sqft":860,"x":48,"y":56,"image":"","description":"Bright two-bed with a lift and a balcony."},
-  {"id":4,"status":"rent","title":"Two-bed with balcony","location":"Riverside","type":"Apartment","price":1250,"beds":2,"baths":1,"sqft":780,"x":18,"y":50,"image":"","description":"Open-plan living with water views."},
-  {"id":5,"status":"rent","title":"Family house to let","location":"Maple Hill","type":"House","price":1900,"beds":4,"baths":2,"sqft":1900,"x":58,"y":18,"image":"","description":"Fenced garden, pets considered."}
+  {"id":1,"status":"buy","title":"Garden townhouse","location":"Milimane","type":"Townhouse","price":385000,"beds":3,"baths":2,"sqft":1480,"x":22,"y":38,"image":"",
+"description":"Three floors with a walled garden and an open kitchen."},
+  {"id":2,"status":"buy","title":"Corner family home","location":"Maple Hill","type":"House","price":520000,"beds":4,"baths":3,"sqft":2250,"x":64,"y":24,"image":"",
+"description":"Corner plot with a double garage and a study."},
+  {"id":3,"status":"buy","title":"Top-floor apartment","location":"Old Quarter","type":"Apartment","price":275000,"beds":2,"baths":1,"sqft":860,"x":48,"y":56,"image":"","description":
+"Bright two-bed with a lift and a balcony."},
+  {"id":4,"status":"rent","title":"Two-bed with balcony","location":"Riverside","type":"Apartment","price":1250,"beds":2,"baths":1,"sqft":780,"x":18,"y":50,"image":"","description":
+"Open-plan living with water views."},
+  {"id":5,"status":"rent","title":"Family house to let","location":"Maple Hill","type":"House","price":1900,"beds":4,"baths":2,"sqft":1900,"x":58,"y":18,"image":"","description":
+"Fenced garden, pets considered."}
+
 ]
+
