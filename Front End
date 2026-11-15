@@ -1,269 +1,518 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real Estate App | Skeleton Architecture</title>
-  <!-- CSS Framework & Icons CDN -->
-  <link rel="stylesheet" href="path-to-your-styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nyumba | Find a home</title>
+<style>
+  :root {
+    --bg: #f5f6f4; --surface: #fff; --ink: #17232b; --muted: #5d6b73;
+    --line: #dde2e0; --accent: #1d6a85; --accent-ink: #fff; --heart: #c8402f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11181d; --surface: #1a242b; --ink: #e8eded; --muted: #93a2aa;
+      --line: #2b3841; --accent: #5bb0cc; --accent-ink: #0c1418; --heart: #ef7a6a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 "Avenir Next", "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 24px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .logo { font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; background: none; border: 0; padding: 0; }
+  header nav { display: flex; gap: 18px; flex: 1; }
+  header nav a { color: var(--muted); text-decoration: none; }
+  header nav a:hover { color: var(--ink); }
+  .btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  .filters { padding: 20px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+  .tabs button { padding: 8px 20px; border: 0; background: none; }
+  .tabs button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .filter-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; }
+  .filter-grid label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  .filter-grid input[type=text], .filter-grid select { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+
+  main { padding: 20px 24px 60px; max-width: 1200px; margin: 0 auto; }
+  .bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .bar .tabs { margin: 0; }
+
+  #grid-view { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .photo { height: 150px; display: flex; align-items: flex-end; padding: 10px; position: relative; }
+  .photo .tag { background: rgba(0,0,0,.6); color: #fff; font-size: .8rem; padding: 2px 8px; border-radius: 6px; }
+  .heart { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface); font-size: 1.1rem; }
+  .heart[aria-pressed="true"] { color: var(--heart); }
+  .card-body { padding: 14px; display: grid; gap: 4px; flex: 1; }
+  .card h3 { margin: 0; font-size: 1.05rem; }
+  .price { font-weight: 700; font-size: 1.15rem; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .card .view-btn { margin: 0 14px 14px; }
+
+  #map-view { display: grid; grid-template-columns: 300px 1fr; gap: 16px; height: 520px; }
+  #map-sidebar-list { overflow-y: auto; display: grid; gap: 8px; align-content: start; }
+  .side-item { text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  .side-item:hover, .side-item.active { border-color: var(--accent); }
+  #map-canvas { position: relative; border-radius: 12px; border: 1px solid var(--line); overflow: hidden;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--bg)), var(--bg)); }
+  .pin { position: absolute; transform: translate(-50%, -100%); padding: 4px 10px; border-radius: 999px; border: 0;
+    background: var(--accent); color: var(--accent-ink); font-size: .8rem; font-weight: 600; white-space: nowrap; }
+  .pin.active { background: var(--ink); color: var(--bg); z-index: 2; }
+
+  .empty { grid-column: 1 / -1; text-align: center; padding: 60px 0; color: var(--muted); }
+
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 100%); background: var(--surface);
+    border-left: 1px solid var(--line); padding: 20px; overflow-y: auto; z-index: 20; box-shadow: -8px 0 24px rgba(0,0,0,.12); }
+  .drawer-head { display: flex; justify-content: space-between; align-items: center; }
+  .drawer-head h3 { margin: 0; }
+  .saved-item { display: flex; justify-content: space-between; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .saved-item button { background: none; border: 0; color: var(--accent); padding: 0; text-align: left; }
+
+  .modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; }
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); }
+  .modal-content { position: relative; background: var(--surface); border-radius: 14px; width: min(640px, 100%); max-height: 92vh; overflow-y: auto; }
+  .modal-content .photo { height: 200px; }
+  .modal-body { padding: 20px; display: grid; gap: 16px; }
+  .modal-body h2 { margin: 0; }
+  .close { position: absolute; top: 10px; right: 10px; z-index: 1; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--surface); }
+  .specs { display: flex; gap: 20px; flex-wrap: wrap; }
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+  .box h4 { margin: 0; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .box label { display: grid; gap: 4px; font-size: .85rem; color: var(--muted); }
+  .box input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 100%; }
+  #calc-output { font-size: 1.2rem; font-weight: 700; }
+  #form-note { color: var(--accent); font-size: .9rem; min-height: 1.3em; margin: 0; }
+
+  @media (max-width: 720px) {
+    header { flex-wrap: wrap; gap: 10px; }
+    header nav { order: 3; flex-basis: 100%; }
+    #map-view { grid-template-columns: 1fr; height: auto; }
+    #map-canvas { height: 360px; order: -1; }
+    #map-sidebar-list { max-height: 260px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
 </head>
 <body>
 
-  <!-- ========================================== -->
-  <!-- 1. NAVIGATION HEADER                       -->
-  <!-- ========================================== -->
-  <header class="app-header">
-    <div class="brand-logo" onclick="handleReset()">
-      <span>BrandLogo</span>
-    </div>
-    
-    <nav class="nav-links">
-      <a href="#buy">Buy</a>
-      <a href="#rent">Rent</a>
-      <a href="#agents">Agents</a>
-    </nav>
+<header>
+  <button class="logo" id="logo">Nyumba</button>
+  <nav>
+    <a href="#buy">Buy</a>
+    <a href="#rent">Rent</a>
+    <a href="#agents">Agents</a>
+  </nav>
+  <button class="btn" id="fav-trigger">Saved (<span id="fav-count">0</span>)</button>
+  <button class="btn primary" id="list-btn">List a property</button>
+</header>
 
-    <div class="nav-actions">
-      <button id="favorites-trigger" onclick="toggleFavoritesDrawer()">Saved (<span id="fav-count">0</span>)</button>
-      <button onclick="openListingModal()">List Property</button>
-    </div>
-  </header>
-
-  <!-- ========================================== -->
-  <!-- 2. SEARCH & FILTER CONTROLS BAR            -->
-  <!-- ========================================== -->
-  <section class="search-filter-section">
-    <div class="filter-tabs">
-      <button onclick="setStatusFilter('buy')">For Sale</button>
-      <button onclick="setStatusFilter('rent')">For Rent</button>
-    </div>
-
-    <div class="filter-inputs-grid">
-      <input type="text" id="filter-location" placeholder="Search location..." oninput="handleFilterChange()">
-      
-      <select id="filter-type" onchange="handleFilterChange()">
-        <option value="all">All Property Types</option>
-        <!-- Options injected dynamically or statically -->
+<section class="filters">
+  <div class="tabs" id="status-tabs">
+    <button data-status="buy" aria-pressed="true">For sale</button>
+    <button data-status="rent" aria-pressed="false">For rent</button>
+  </div>
+  <div class="filter-grid">
+    <label>Location
+      <input type="text" id="filter-location" placeholder="Town or neighbourhood">
+    </label>
+    <label>Property type
+      <select id="filter-type"><option value="all">All types</option></select>
+    </label>
+    <label>Max price: <strong id="price-label"></strong>
+      <input type="range" id="filter-price">
+    </label>
+    <label>Bedrooms
+      <select id="filter-beds">
+        <option value="any">Any</option>
+        <option value="1">1+</option>
+        <option value="2">2+</option>
+        <option value="3">3+</option>
+        <option value="4">4+</option>
       </select>
+    </label>
+  </div>
+</section>
 
-      <input type="range" id="filter-price" oninput="handleFilterChange()">
-      
-      <select id="filter-beds" onchange="handleFilterChange()">
-        <option value="any">Bedrooms</option>
-      </select>
-    </div>
-  </section>
-
-  <!-- ========================================== -->
-  <!-- 3. MAIN CONTENT CONTAINER (Views Switcher) -->
-  <!-- ========================================== -->
-  <main class="app-main">
-    <div class="view-controls">
-      <span id="results-counter">0 properties found</span>
-      <div class="toggle-buttons">
-        <button onclick="switchView('grid')">Grid View</button>
-        <button onclick="switchView('map')">Map View</button>
-      </div>
-    </div>
-
-    <!-- Grid View Container -->
-    <div id="grid-view" class="view-container">
-      <!-- Dynamic Property Cards injected via JS -->
-    </div>
-
-    <!-- Map View Container (Hidden by default) -->
-    <div id="map-view" class="view-container hidden">
-      <div id="map-sidebar-list"></div>
-      <div id="map-canvas-simulator"></div>
-    </div>
-  </main>
-
-  <!-- ========================================== -->
-  <!-- 4. SAVED PROPERTIES SIDE DRAWER            -->
-  <!-- ========================================== -->
-  <aside id="favorites-drawer" class="drawer hidden">
-    <div class="drawer-header">
-      <h3>Saved Properties</h3>
-      <button onclick="toggleFavoritesDrawer()">Close</button>
-    </div>
-    <div id="favorites-list-container">
-      <!-- Saved items injected via JS -->
-    </div>
-  </aside>
-
-  <!-- ========================================== -->
-  <!-- 5. PROPERTY DETAIL MODAL                   -->
-  <!-- ========================================== -->
-  <div id="property-modal" class="modal hidden">
-    <div class="modal-backdrop" onclick="closePropertyModal()"></div>
-    <div class="modal-content">
-      <button onclick="closePropertyModal()">X</button>
-      
-      <!-- Modal Body Sections -->
-      <div class="modal-gallery"></div>
-      <div class="modal-details">
-        <h2 id="modal-title"></h2>
-        <p id="modal-location"></p>
-        <div id="modal-specs"></div>
-        <div id="modal-description"></div>
-        
-        <!-- Embedded Interactive Tool (e.g., Mortgage Calculator) -->
-        <div class="calculator-box">
-          <input type="number" id="calc-downpayment" oninput="runCalculator()">
-          <input type="number" id="calc-interest" oninput="runCalculator()">
-          <span id="calc-output"></span>
-        </div>
-
-        <!-- Contact Agent Form -->
-        <form id="agent-form" onsubmit="submitAgentInquiry(event)">
-          <input type="text" placeholder="Name" required>
-          <input type="email" placeholder="Email" required>
-          <button type="submit">Send Message</button>
-        </form>
-      </div>
+<main>
+  <div class="bar">
+    <span id="results-counter" aria-live="polite"></span>
+    <div class="tabs" id="view-tabs">
+      <button data-view="grid" aria-pressed="true">Grid</button>
+      <button data-view="map" aria-pressed="false">Map</button>
     </div>
   </div>
+  <div id="grid-view"></div>
+  <div id="map-view" class="hidden">
+    <div id="map-sidebar-list"></div>
+    <div id="map-canvas"></div>
+  </div>
+</main>
 
-  <!-- ========================================== -->
-  <!-- 6. APPLICATION JAVASCRIPT ARCHITECTURE     -->
-  <!-- ========================================== -->
-  <script>
-    // --- State Management ---
-    const appState = {
-      properties: [],          // Raw data fetched from backend/API
-      filteredProperties: [],  // Filtered array based on user controls
-      favorites: new Set(),    // User favorited property IDs
-      currentView: 'grid',     // 'grid' or 'map'
-      filters: {
-        status: 'buy',
-        location: '',
-        type: 'all',
-        maxPrice: 0,
-        beds: 'any'
-      },
-      activeProperty: null     // Currently selected item for modal view
-    };
+<aside id="favorites-drawer" class="drawer hidden" aria-label="Saved properties">
+  <div class="drawer-head">
+    <h3>Saved properties</h3>
+    <button class="btn" id="drawer-close">Close</button>
+  </div>
+  <div id="favorites-list"></div>
+</aside>
 
-    // --- Lifecycle Initialization ---
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchPropertyData();
-    });
+<div id="property-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="backdrop" id="modal-backdrop"></div>
+  <div class="modal-content">
+    <button class="close" id="modal-close" aria-label="Close">&times;</button>
+    <div class="photo" id="modal-photo"></div>
+    <div class="modal-body">
+      <div>
+        <h2 id="modal-title"></h2>
+        <div class="muted" id="modal-location"></div>
+      </div>
+      <div class="specs" id="modal-specs"></div>
+      <p id="modal-description" style="margin:0"></p>
 
-    function fetchPropertyData() {
-      // TODO: Replace with fetch('/api/properties') call to your backend
-      appState.properties = []; 
-      applyFilters();
-    }
+      <div class="box" id="calc-box">
+        <h4>Monthly repayment estimate</h4>
+        <div class="row">
+          <label>Deposit (KES)<input type="number" id="calc-downpayment" min="0" step="50000"></label>
+          <label>Interest rate (%)<input type="number" id="calc-interest" value="13" min="0" step="0.25"></label>
+        </div>
+        <div>Over 20 years: <span id="calc-output"></span></div>
+      </div>
 
-    // --- Filtering & Logic Controller ---
-    function setStatusFilter(status) {
-      appState.filters.status = status;
-      applyFilters();
-    }
+      <form class="box" id="agent-form">
+        <h4>Ask the agent</h4>
+        <input type="text" name="name" placeholder="Your name" required>
+        <input type="email" name="email" placeholder="Email address" required>
+        <button class="btn primary" type="submit">Send message</button>
+        <p id="form-note" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
 
-    function handleFilterChange() {
-      // Gather inputs from DOM and update appState.filters
-      applyFilters();
-    }
+<script>
+// Sample listings. Swap this for fetch('/api/properties') once there's a backend.
+// x/y are percentages used to place pins on the mock map.
+const SAMPLE_PROPERTIES = [
+  { id: 1, status: 'buy',  title: 'Garden bungalow',       type: 'House',     location: 'Karen, Nairobi',   price: 28500000, beds: 4, baths: 3, area: 320, x: 30, y: 62, hue: 150, description: 'A quiet bungalow on a landscaped quarter-acre with a mature garden, a staff quarter and a two-car garage.' },
+  { id: 2, status: 'buy',  title: 'Two-bedroom apartment', type: 'Apartment', location: 'Kilimani, Nairobi', price: 9800000,  beds: 2, baths: 2, area: 98,  x: 52, y: 40, hue: 200, description: 'Top-floor apartment with a balcony, backup generator and covered parking. Ten minutes from Yaya Centre.' },
+  { id: 3, status: 'buy',  title: 'Lakeview maisonette',   type: 'House',     location: 'Naivasha',          price: 14200000, beds: 3, baths: 3, area: 210, x: 20, y: 28, hue: 180, description: 'Three-storey maisonette in a gated community, with lake views from the main bedroom.' },
+  { id: 4, status: 'buy',  title: 'Corner plot, ready to build', type: 'Land', location: 'Isiolo Town',     price: 3500000,  beds: 0, baths: 0, area: 1000, x: 72, y: 24, hue: 40,  description: 'Flat, fenced corner plot with title deed and water on site.' },
+  { id: 5, status: 'buy',  title: 'Studio near the beach', type: 'Apartment', location: 'Nyali, Mombasa',    price: 6200000,  beds: 1, baths: 1, area: 54,  x: 80, y: 70, hue: 20,  description: 'Compact studio a short walk from the beach, with a shared pool and 24-hour security.' },
+  { id: 6, status: 'rent', title: 'One-bedroom flat',      type: 'Apartment', location: 'Westlands, Nairobi', price: 55000,   beds: 1, baths: 1, area: 62,  x: 46, y: 34, hue: 260, description: 'Furnished flat on the fourth floor. Water and internet included in the rent.' },
+  { id: 7, status: 'rent', title: 'Family home with a yard', type: 'House',   location: 'Lavington, Nairobi', price: 180000,  beds: 4, baths: 3, area: 280, x: 38, y: 52, hue: 120, description: 'Four bedrooms, a fenced yard and a separate guest wing. Pets considered.' },
+  { id: 8, status: 'rent', title: 'Two-bedroom townhouse', type: 'House',     location: 'Nanyuki',           price: 70000,   beds: 2, baths: 2, area: 130, x: 64, y: 16, hue: 90,  description: 'Townhouse on a small estate with a shared garden and views of Mt Kenya.' }
+];
 
-    function applyFilters() {
-      appState.filteredProperties = appState.properties.filter(property => {
-        // Implement filter criteria checks here (status, price, location, etc.)
-        return true;
-      });
-      renderView();
-    }
+const PRICE_CEILING = { buy: 30000000, rent: 200000 };
 
-    // --- View Rendering Engine ---
-    function switchView(viewMode) {
-      appState.currentView = viewMode;
-      // Toggle CSS visibility classes between grid and map containers
-      renderView();
-    }
+const state = {
+  properties: [],
+  filtered: [],
+  favorites: new Set(),
+  view: 'grid',
+  filters: { status: 'buy', location: '', type: 'all', maxPrice: PRICE_CEILING.buy, beds: 'any' },
+  active: null,
+  highlighted: null
+};
 
-    function renderView() {
-      if (appState.currentView === 'grid') {
-        renderPropertyGrid();
-      } else {
-        renderMapView();
-      }
-    }
+const $ = id => document.getElementById(id);
+const kes = n => 'KES ' + Math.round(n).toLocaleString('en-KE');
+const priceText = p => kes(p.price) + (p.status === 'rent' ? ' / month' : '');
+const photoStyle = p => `background: linear-gradient(135deg, hsl(${p.hue} 40% 38%), hsl(${p.hue + 30} 45% 62%))`;
 
-    function renderPropertyGrid() {
-      const container = document.getElementById('grid-view');
-      container.innerHTML = '';
-      
-      appState.filteredProperties.forEach(property => {
-        // Create card element, attach data and event listeners, append to container
-      });
-    }
+// ---------- Loading ----------
 
-    function renderMapView() {
-      // Render map pins and sidebar list corresponding to appState.filteredProperties
-    }
+async function loadProperties() {
+  try {
+    // Uncomment when you have a real endpoint:
+    // const res = await fetch('properties.json');
+    // if (!res.ok) throw new Error('Request failed with status ' + res.status);
+    // state.properties = await res.json();
+    state.properties = SAMPLE_PROPERTIES;
+  } catch (err) {
+    console.error('Could not load properties:', err);
+    state.properties = [];
+  }
+  buildTypeOptions();
+  syncPriceSlider();
+  applyFilters();
+}
 
-    // --- Favorites Management ---
-    function toggleFavorite(propertyId) {
-      if (appState.favorites.has(propertyId)) {
-        appState.favorites.delete(propertyId);
-      } else {
-        appState.favorites.add(propertyId);
-      }
-      document.getElementById('fav-count').textContent = appState.favorites.size;
-      renderFavoritesDrawerContent();
-    }
+function buildTypeOptions() {
+  const types = [...new Set(state.properties.map(p => p.type))].sort();
+  $('filter-type').innerHTML = '<option value="all">All types</option>' +
+    types.map(t => `<option value="${t}">${t}</option>`).join('');
+}
 
-    function toggleFavoritesDrawer() {
-      const drawer = document.getElementById('favorites-drawer');
-      drawer.classList.toggle('hidden');
-    }
+function syncPriceSlider() {
+  const max = PRICE_CEILING[state.filters.status];
+  const slider = $('filter-price');
+  slider.min = 0;
+  slider.max = max;
+  slider.step = max / 100;
+  slider.value = state.filters.maxPrice = max;
+  $('price-label').textContent = kes(max);
+}
 
-    function renderFavoritesDrawerContent() {
-      // Loop through appState.favorites and populate the side drawer
-    }
+// ---------- Filtering ----------
 
-    // --- Modal & Interactive Tool Handlers ---
-    function openPropertyModal(propertyId) {
-      appState.activeProperty = appState.properties.find(p => p.id === propertyId);
-      // Populate modal DOM nodes with appState.activeProperty data
-      document.getElementById('property-modal').classList.remove('hidden');
-    }
+function readFilters() {
+  const f = state.filters;
+  f.location = $('filter-location').value.trim().toLowerCase();
+  f.type = $('filter-type').value;
+  f.maxPrice = Number($('filter-price').value);
+  f.beds = $('filter-beds').value;
+  $('price-label').textContent = f.maxPrice >= PRICE_CEILING[f.status] ? kes(f.maxPrice) + '+' : kes(f.maxPrice);
+  applyFilters();
+}
 
-    function closePropertyModal() {
-      document.getElementById('property-modal').classList.add('hidden');
-      appState.activeProperty = null;
-    }
+function applyFilters() {
+  const f = state.filters;
+  const unlimited = f.maxPrice >= PRICE_CEILING[f.status];
+  state.filtered = state.properties.filter(p => {
+    if (p.status !== f.status) return false;
+    if (f.location && !p.location.toLowerCase().includes(f.location)) return false;
+    if (f.type !== 'all' && p.type !== f.type) return false;
+    if (!unlimited && p.price > f.maxPrice) return false;
+    if (f.beds !== 'any' && p.beds < Number(f.beds)) return false;
+    return true;
+  });
+  render();
+}
 
-    function runCalculator() {
-      // Calculate financial values dynamically using appState.activeProperty pricing
-    }
+function setStatus(status) {
+  state.filters.status = status;
+  document.querySelectorAll('#status-tabs button').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.status === status));
+  syncPriceSlider();
+  applyFilters();
+}
 
-    function submitAgentInquiry(event) {
-      event.preventDefault();
-      // Handle form submission logic (e.g., API POST request)
-    }
+function resetAll() {
+  $('filter-location').value = '';
+  $('filter-type').value = 'all';
+  $('filter-beds').value = 'any';
+  state.filters.location = '';
+  state.filters.type = 'all';
+  state.filters.beds = 'any';
+  setStatus('buy');
+  setView('grid');
+}
 
-    function handleReset() {
-      // Reset state filters and reload initial view
-    }
-  </script>
+// ---------- Rendering ----------
+
+function setView(view) {
+  state.view = view;
+  document.querySelectorAll('#view-tabs button').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.view === view));
+  $('grid-view').classList.toggle('hidden', view !== 'grid');
+  $('map-view').classList.toggle('hidden', view !== 'map');
+  render();
+}
+
+function render() {
+  const n = state.filtered.length;
+  $('results-counter').textContent = n === 1 ? '1 property found' : n + ' properties found';
+  if (state.view === 'grid') renderGrid(); else renderMap();
+}
+
+function renderGrid() {
+  const grid = $('grid-view');
+  if (!state.filtered.length) {
+    grid.innerHTML = '<div class="empty">Nothing matches those filters. Try a higher price or fewer bedrooms.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  state.filtered.forEach(p => {
+    const saved = state.favorites.has(p.id);
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="photo" style="${photoStyle(p)}">
+        <span class="tag">${p.type}</span>
+        <button class="heart" aria-pressed="${saved}" aria-label="${saved ? 'Remove from saved' : 'Save property'}">${saved ? '♥' : '♡'}</button>
+      </div>
+      <div class="card-body">
+        <div class="price">${priceText(p)}</div>
+        <h3>${p.title}</h3>
+        <div class="muted">${p.location}</div>
+        <div class="muted">${specLine(p)}</div>
+      </div>
+      <button class="btn view-btn">View details</button>`;
+    card.querySelector('.heart').addEventListener('click', () => toggleFavorite(p.id));
+    card.querySelector('.view-btn').addEventListener('click', () => openModal(p.id));
+    grid.appendChild(card);
+  });
+}
+
+function specLine(p) {
+  if (p.type === 'Land') return p.area.toLocaleString() + ' m² plot';
+  return `${p.beds} bed · ${p.baths} bath · ${p.area} m²`;
+}
+
+function renderMap() {
+  const list = $('map-sidebar-list');
+  const canvas = $('map-canvas');
+  list.innerHTML = '';
+  canvas.innerHTML = '';
+  if (!state.filtered.length) {
+    list.innerHTML = '<div class="empty">No properties to show.</div>';
+    return;
+  }
+  state.filtered.forEach(p => {
+    const item = document.createElement('button');
+    item.className = 'side-item' + (p.id === state.highlighted ? ' active' : '');
+    item.innerHTML = `<strong>${p.title}</strong><div class="muted">${p.location} · ${priceText(p)}</div>`;
+    item.addEventListener('click', () => { state.highlighted = p.id; renderMap(); openModal(p.id); });
+    item.addEventListener('mouseenter', () => highlightPin(p.id));
+    list.appendChild(item);
+
+    const pin = document.createElement('button');
+    pin.className = 'pin' + (p.id === state.highlighted ? ' active' : '');
+    pin.dataset.id = p.id;
+    pin.style.left = p.x + '%';
+    pin.style.top = p.y + '%';
+    pin.textContent = shortPrice(p);
+    pin.setAttribute('aria-label', `${p.title}, ${priceText(p)}`);
+    pin.addEventListener('click', () => { state.highlighted = p.id; renderMap(); openModal(p.id); });
+    canvas.appendChild(pin);
+  });
+}
+
+function highlightPin(id) {
+  document.querySelectorAll('.pin').forEach(el => el.classList.toggle('active', Number(el.dataset.id) === id));
+}
+
+function shortPrice(p) {
+  return p.price >= 1e6 ? (p.price / 1e6).toFixed(1).replace('.0', '') + 'M' : Math.round(p.price / 1000) + 'K';
+}
+
+// ---------- Saved properties ----------
+
+function toggleFavorite(id) {
+  if (state.favorites.has(id)) state.favorites.delete(id);
+  else state.favorites.add(id);
+  $('fav-count').textContent = state.favorites.size;
+  renderFavorites();
+  render();
+}
+
+function renderFavorites() {
+  const box = $('favorites-list');
+  if (!state.favorites.size) {
+    box.innerHTML = '<p class="muted">You haven\'t saved anything yet. Tap the heart on a listing to keep it here.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  state.properties.filter(p => state.favorites.has(p.id)).forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'saved-item';
+    row.innerHTML = `
+      <div><button><strong>${p.title}</strong></button><div class="muted">${p.location} · ${priceText(p)}</div></div>
+      <button aria-label="Remove ${p.title}">Remove</button>`;
+    const [open, remove] = row.querySelectorAll('button');
+    open.addEventListener('click', () => { toggleDrawer(false); openModal(p.id); });
+    remove.addEventListener('click', () => toggleFavorite(p.id));
+    box.appendChild(row);
+  });
+}
+
+function toggleDrawer(open) {
+  const drawer = $('favorites-drawer');
+  const show = open === undefined ? drawer.classList.contains('hidden') : open;
+  drawer.classList.toggle('hidden', !show);
+}
+
+// ---------- Property modal ----------
+
+function openModal(id) {
+  const p = state.properties.find(item => item.id === id);
+  if (!p) return;
+  state.active = p;
+  $('modal-photo').style.cssText = photoStyle(p);
+  $('modal-title').textContent = p.title;
+  $('modal-location').textContent = p.location + ' · ' + priceText(p);
+  $('modal-specs').innerHTML = p.type === 'Land'
+    ? `<span>${p.area.toLocaleString()} m² plot</span>`
+    : `<span>${p.beds} bedrooms</span><span>${p.baths} bathrooms</span><span>${p.area} m²</span>`;
+  $('modal-description').textContent = p.description;
+
+  // Repayment estimates only make sense for purchases
+  $('calc-box').classList.toggle('hidden', p.status === 'rent');
+  $('calc-downpayment').value = Math.round(p.price * 0.2 / 50000) * 50000;
+  $('agent-form').reset();
+  $('form-note').textContent = '';
+  runCalculator();
+
+  $('property-modal').classList.remove('hidden');
+  $('modal-close').focus();
+}
+
+function closeModal() {
+  $('property-modal').classList.add('hidden');
+  state.active = null;
+}
+
+function runCalculator() {
+  const p = state.active;
+  if (!p || p.status === 'rent') return;
+  const deposit = Number($('calc-downpayment').value) || 0;
+  const annualRate = Number($('calc-interest').value) || 0;
+  const principal = Math.max(p.price - deposit, 0);
+  const months = 20 * 12;
+  const r = annualRate / 100 / 12;
+  const payment = r === 0 ? principal / months : principal * r / (1 - Math.pow(1 + r, -months));
+  $('calc-output').textContent = kes(payment) + ' / month';
+}
+
+function sendInquiry(event) {
+  event.preventDefault();
+  // TODO: POST this to your backend, e.g. fetch('/api/inquiries', { method: 'POST', ... })
+  const name = new FormData(event.target).get('name');
+  $('form-note').textContent = `Thanks, ${name}. The agent will get back to you soon.`;
+  event.target.reset();
+}
+
+// ---------- Wiring ----------
+
+$('logo').addEventListener('click', resetAll);
+$('fav-trigger').addEventListener('click', () => toggleDrawer());
+$('drawer-close').addEventListener('click', () => toggleDrawer(false));
+$('list-btn').addEventListener('click', () => alert('Listing form coming soon.'));
+$('modal-close').addEventListener('click', closeModal);
+$('modal-backdrop').addEventListener('click', closeModal);
+$('calc-downpayment').addEventListener('input', runCalculator);
+$('calc-interest').addEventListener('input', runCalculator);
+$('agent-form').addEventListener('submit', sendInquiry);
+
+document.querySelectorAll('#status-tabs button').forEach(b =>
+  b.addEventListener('click', () => setStatus(b.dataset.status)));
+document.querySelectorAll('#view-tabs button').forEach(b =>
+  b.addEventListener('click', () => setView(b.dataset.view)));
+['filter-location', 'filter-price'].forEach(id => $(id).addEventListener('input', readFilters));
+['filter-type', 'filter-beds'].forEach(id => $(id).addEventListener('change', readFilters));
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  closeModal();
+  toggleDrawer(false);
+});
+
+// The header links (#buy, #rent) switch the tab, so they work as bookmarks too
+function followHash() {
+  if (location.hash === '#buy') setStatus('buy');
+  if (location.hash === '#rent') setStatus('rent');
+}
+window.addEventListener('hashchange', followHash);
+
+renderFavorites();
+loadProperties().then(followHash);
+</script>
 </body>
 </html>
-// --- Updated Asynchronous Data Fetcher ---
-async function fetchPropertyData() {
-  try {
-    const response = await fetch('properties.json');
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    
-    appState.properties = await response.json();
-    
-    // Initialize filter dropdowns and apply filters once data is loaded
-    initFilterControls();
-    applyFilters();
-  } catch (error) {
-    console.error('Failed to fetch property data:', error);
-    // Fallback UI or empty state handling can go here
-  }
-}
