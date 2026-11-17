@@ -105,3 +105,11 @@ const API = (() => {
     removeProperty: (id) => request(`/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   };
 })();
+let response;
+try {
+  response = await fetch(url, {...});
+} catch {
+  const err = new Error('Network error: could not reach the server');
+  err.status = 0;
+  throw err;
+}
