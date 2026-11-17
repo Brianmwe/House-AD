@@ -120,3 +120,5 @@ if (response.status === 401) {
 const controller = new AbortController();
 const timer = setTimeout(() => controller.abort(), 10000);
 // pass signal: controller.signal to fetch, clearTimeout(timer) in finally
+error.status = response.status;
+error.details = payload?.errors ?? null;
