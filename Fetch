@@ -113,3 +113,7 @@ try {
   err.status = 0;
   throw err;
 }
+if (response.status === 401) {
+  setToken(null);
+  window.dispatchEvent(new CustomEvent('auth:expired'));
+}
