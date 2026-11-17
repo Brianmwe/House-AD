@@ -117,3 +117,6 @@ if (response.status === 401) {
   setToken(null);
   window.dispatchEvent(new CustomEvent('auth:expired'));
 }
+const controller = new AbortController();
+const timer = setTimeout(() => controller.abort(), 10000);
+// pass signal: controller.signal to fetch, clearTimeout(timer) in finally
