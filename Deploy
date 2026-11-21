@@ -1,1 +1,47 @@
-r
+# Place this file in the ROOT of your Git repo, next to server/ and client/.
+# If your folders have different names, change `rootDir` and `staticPublishPath`.
+
+databases:
+  - name: realestate-db
+    plan: basic-256mb
+    databaseName: realestate
+    user: realestate
+    ipAllowList: [] # internal access only (your Render services); no public access
+
+services:
+  # ---------- API ----------
+  - type: web
+    name: realestate-api
+    runtime: node
+    plan: starter
+    rootDir: server
+    buildCommand: npm ci --include=dev && npx prisma generate # --include=dev guards against prisma being in devDependencies
+    preDeployCommand: npx prisma migrate deploy # applies pending migrations before new code goes live
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: realestate-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false # enter https://realestate-web.onrender.com (no trailing slash) when prompted
+
+  # ---------- Frontend (plain HTML/JS, no build step) ----------
+  - type: web
+    name: realestate-web
+    runtime: static
+    rootDir: .
+    buildCommand: echo "No build step"
+    staticPublishPath: ./client
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
