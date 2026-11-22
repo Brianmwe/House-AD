@@ -1,0 +1,19 @@
+FROM node:20-slim AS base
+# Prisma needs OpenSSL at runtime
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+FROM base AS deps
+COPY package*.json ./
+COPY prisma ./prisma
+RUN npm ci --omit=dev && npx prisma generate
+
+FROM base
+ENV NODE_ENV=production
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+USER node
+EXPOSE 3000
+# Apply pending migrations, then start the API
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
