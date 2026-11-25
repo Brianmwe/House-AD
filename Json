@@ -2,7 +2,7 @@
   {
     "id": "prop-1",
     "title": "Modern Glass Villa",
-    "location": "Beverly Hills, CA",
+    "location": "Kilimani, CA",
     "price": 1250000,
     "status": "buy",
     "type": "Villa",
@@ -15,7 +15,7 @@
   {
     "id": "prop-2",
     "title": "Downtown Luxury Loft",
-    "location": "Manhattan, NY",
+    "location": "Milimani, Meru",
     "price": 4500,
     "status": "rent",
     "type": "Apartment",
@@ -28,10 +28,10 @@
   {
     "id": "prop-3",
     "title": "Suburban Family Home",
-    "location": "Austin, TX",
+    "location": "Karen, Nbo",
     "price": 650000,
     "status": "buy",
-    "type": "Single Family",
+    "type": "Family",
     "beds": 3,
     "baths": 2.5,
     "sqft": 2400,
